@@ -1,8 +1,6 @@
 <div align="center">
-
-<h1><img src="images/icon.png" alt="Growth Agent" width="80" height="80" style="vertical-align: middle;"> Growth Agent</h1>
-
-### AI-Powered Content Intelligence & Automated Blog Generation
+<h1>Growth Agent: AI-Powered Content Intelligence & Automated Blog Generation</h1>
+<img src="images/logo.png" alt="Growth Agent" height="150" style="vertical-align: middle;">
 
 [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
