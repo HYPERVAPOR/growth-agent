@@ -1,18 +1,102 @@
 <div align="center">
 
-# 🤖 Growth Agent
+<h1><img src="images/icon.png" alt="Growth Agent" width="80" height="80" style="vertical-align: middle;"> Growth Agent</h1>
 
 ### AI-Powered Content Intelligence & Automated Blog Generation
 
 [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Powered by Claude](https://img.shields.io/badge/Powered%20by-Claude-orange.svg)](https://claude.ai/)
+[![AI Agent](https://img.shields.io/badge/AI-Agent-8B5CF6.svg)](https://github.com/HYPERVAPOR/growth-agent)
+[![OpenRouter](https://img.shields.io/badge/LLM-OpenRouter-00E599.svg)](https://openrouter.ai/)
+[![LanceDB](https://img.shields.io/badge/Vector%20Store-LanceDB-32CD32.svg)](https://lancedb.com/)
 
 **Automated content curation, LLM-powered analysis, and blog generation for modern growth teams**
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Workflows](#-workflows) • [Deployment](#-deployment) • [Development](#-development)
+[Workflows](#-workflows) • [Features](#-features) • [Quick Start](#-quick-start) • [Deployment](#-deployment) • [Development](#-development)
 
 </div>
+
+---
+
+## 🔄 Workflows
+
+<img src="images/workflow%20explained.png" alt="Workflow Explained" width="100%">
+
+### 📦 Workflow A: GitHub Quality Management
+
+**Status:** ✅ Active | **Purpose:** Sync GitHub issues to local storage
+
+```bash
+# Manual execution
+uv run python scripts/sync_github_issues.py
+```
+
+**Features:**
+- 🐙 GitHub CLI wrapper (`gh issue list`)
+- ⏰ Timestamp-based upsert logic
+- 📊 Issue state tracking (open/closed)
+- 🔒 Atomic file operations
+
+**Output:** `data/github/issues.jsonl`
+
+---
+
+### 🧠 Workflow B: Content Intelligence & Blog Creation
+
+**Status:** ✅ Active | **Purpose:** Ingest, curate, and generate content
+
+```bash
+# Manual execution
+uv run python -m growth_agent.main run workflow-b
+```
+
+**Three-Stage Pipeline:**
+
+1. **📥 Ingestion Stage**
+   - Fetch from X/Twitter creators (20 tweets per creator)
+   - Fetch from RSS feeds (20 articles per feed)
+   - Store in `data/inbox/items.jsonl`
+   - Index in LanceDB for semantic search
+
+2. **🎯 Curation Stage**
+   - LLM evaluates each item (score 0-100)
+   - Filter by minimum score (default: 60)
+   - Select top-K items (default: 10)
+   - Store in `data/curated/{date}_ranked.jsonl`
+
+3. **✍️ Generation Stage**
+   - LLM generates blog post from curated items
+   - YAML frontmatter with metadata
+   - Save as `data/blogs/{ID}_{slug}.md`
+
+**Output:**
+- 📥 `data/inbox/items.jsonl`
+- 🎯 `data/curated/{YYYY-MM-DD}_ranked.jsonl`
+- ✍️ `data/blogs/*.md`
+
+---
+
+### 📊 Workflow C: Social Media Metrics Tracking
+
+**Status:** ✅ Active | **Purpose:** Track X/Twitter engagement metrics
+
+```bash
+# Manual execution
+uv run python scripts/sync_metrics.py
+
+# With custom account
+uv run python scripts/sync_metrics.py username user_id
+```
+
+**Features:**
+- 🐦 Fetch latest 20 tweets from account
+- 📈 Extract engagement metrics (likes, retweets, replies)
+- 💾 Overwrite mode (keeps latest data only)
+- 🔄 No deduplication (always fresh metrics)
+
+**Output:** `data/metrics/stats.jsonl`
 
 ---
 
@@ -127,84 +211,6 @@ uv run python -m growth_agent.main run workflow-b
 # Start scheduler daemon (Ctrl+C to stop)
 uv run python -m growth_agent.main schedule
 ```
-
----
-
-## 🔄 Workflows
-
-### 📦 Workflow A: GitHub Quality Management
-
-**Status:** ✅ Active | **Purpose:** Sync GitHub issues to local storage
-
-```bash
-# Manual execution
-uv run python scripts/sync_github_issues.py
-```
-
-**Features:**
-- 🐙 GitHub CLI wrapper (`gh issue list`)
-- ⏰ Timestamp-based upsert logic
-- 📊 Issue state tracking (open/closed)
-- 🔒 Atomic file operations
-
-**Output:** `data/github/issues.jsonl`
-
----
-
-### 🧠 Workflow B: Content Intelligence & Blog Creation
-
-**Status:** ✅ Active | **Purpose:** Ingest, curate, and generate content
-
-```bash
-# Manual execution
-uv run python -m growth_agent.main run workflow-b
-```
-
-**Three-Stage Pipeline:**
-
-1. **📥 Ingestion Stage**
-   - Fetch from X/Twitter creators (20 tweets per creator)
-   - Fetch from RSS feeds (20 articles per feed)
-   - Store in `data/inbox/items.jsonl`
-   - Index in LanceDB for semantic search
-
-2. **🎯 Curation Stage**
-   - LLM evaluates each item (score 0-100)
-   - Filter by minimum score (default: 60)
-   - Select top-K items (default: 10)
-   - Store in `data/curated/{date}_ranked.jsonl`
-
-3. **✍️ Generation Stage**
-   - LLM generates blog post from curated items
-   - YAML frontmatter with metadata
-   - Save as `data/blogs/{ID}_{slug}.md`
-
-**Output:**
-- 📥 `data/inbox/items.jsonl`
-- 🎯 `data/curated/{YYYY-MM-DD}_ranked.jsonl`
-- ✍️ `data/blogs/*.md`
-
----
-
-### 📊 Workflow C: Social Media Metrics Tracking
-
-**Status:** ✅ Active | **Purpose:** Track X/Twitter engagement metrics
-
-```bash
-# Manual execution
-uv run python scripts/sync_metrics.py
-
-# With custom account
-uv run python scripts/sync_metrics.py username user_id
-```
-
-**Features:**
-- 🐦 Fetch latest 20 tweets from account
-- 📈 Extract engagement metrics (likes, retweets, replies)
-- 💾 Overwrite mode (keeps latest data only)
-- 🔄 No deduplication (always fresh metrics)
-
-**Output:** `data/metrics/stats.jsonl`
 
 ---
 
