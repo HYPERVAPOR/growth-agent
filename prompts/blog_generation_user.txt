@@ -1,0 +1,11 @@
+Based on the following curated high-quality content, generate a compelling blog post:
+
+{content_blocks}
+
+Create a cohesive blog post that:
+1. Synthesizes insights from multiple sources
+2. Provides unique perspective and analysis
+3. Offers actionable takeaways
+4. Engages the target audience
+
+Use the exact output format specified above.

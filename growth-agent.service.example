@@ -1,0 +1,17 @@
+[Unit]
+Description=Growth Agent Scheduler
+Documentation=https://github.com/HYPERVAPOR/growth-agent
+After=network-online.target
+
+[Service]
+Type=simple
+User=your_username
+WorkingDirectory=/home/hv/projs/growth-agent
+ExecStart=/usr/bin/uv run python -m growth_agent.main schedule
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

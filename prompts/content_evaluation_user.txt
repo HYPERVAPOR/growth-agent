@@ -1,0 +1,5 @@
+Analyze this content from {author} ({source}):
+
+{content}
+
+Provide your evaluation in the required JSON format.

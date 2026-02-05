@@ -1,0 +1,105 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-02-05T12:00:00Z",
+  "data_root": "data",
+  "directories": {
+    "subscriptions": {
+      "path": "subscriptions/",
+      "description": "Source subscriptions for data ingestion",
+      "files": {
+        "x_creators.jsonl": {
+          "schema": "XCreator",
+          "description": "X/Twitter creator subscriptions",
+          "record_count_key": "id"
+        },
+        "rss_feeds.jsonl": {
+          "schema": "RSSFeed",
+          "description": "RSS feed subscriptions",
+          "record_count_key": "id"
+        }
+      }
+    },
+    "inbox": {
+      "path": "inbox/",
+      "description": "Raw ingested items before curation",
+      "files": {
+        "items.jsonl": {
+          "schema": "InboxItem",
+          "description": "Unified storage for X and RSS items",
+          "record_count_key": "id"
+        }
+      }
+    },
+    "curated": {
+      "path": "curated/",
+      "description": "LLM-evaluated high-value content",
+      "pattern": "{YYYY-MM-DD}_ranked.jsonl",
+      "archives": "curated/archives/"
+    },
+    "blogs": {
+      "path": "blogs/",
+      "description": "Generated blog posts with frontmatter",
+      "pattern": "{ID}_{SLUG}.md",
+      "format": "markdown+yaml"
+    },
+    "github": {
+      "path": "github/",
+      "description": "GitHub Issues synced data (Workflow A - Reserved)",
+      "files": {
+        "issues.jsonl": {
+          "schema": "GitHubIssue",
+          "description": "GitHub repository issues"
+        }
+      }
+    },
+    "metrics": {
+      "path": "metrics/",
+      "description": "Social media engagement metrics (Workflow C - Reserved)",
+      "files": {
+        "stats.jsonl": {
+          "schema": "MetricStat",
+          "description": "Platform engagement statistics"
+        }
+      }
+    },
+    "logs": {
+      "path": "logs/",
+      "description": "Daily execution logs",
+      "pattern": "{YYYY-MM-DD}.log"
+    },
+    "schemas": {
+      "path": "schemas/",
+      "description": "Markdown documentation for entities"
+    },
+    "index": {
+      "path": "index/",
+      "description": "LanceDB vector store"
+    }
+  },
+  "workflows": {
+    "workflow_a": {
+      "name": "GitHub Quality Management",
+      "status": "reserved",
+      "description": "GitHub issue synchronization and categorization",
+      "input_files": [],
+      "output_files": ["github/issues.jsonl"]
+    },
+    "workflow_b": {
+      "name": "Content Intelligence & Blog Creation",
+      "status": "active",
+      "description": "Content ingestion, curation, and blog generation",
+      "stages": [
+        {"name": "ingestion", "input": "subscriptions/*", "output": "inbox/items.jsonl"},
+        {"name": "curation", "input": "inbox/items.jsonl", "output": "curated/{date}_ranked.jsonl"},
+        {"name": "generation", "input": "curated/{date}_ranked.jsonl", "output": "blogs/{id}_{slug}.md"}
+      ]
+    },
+    "workflow_c": {
+      "name": "Social Media Metrics Tracking",
+      "status": "reserved",
+      "description": "Social media performance tracking",
+      "input_files": [],
+      "output_files": ["metrics/stats.jsonl"]
+    }
+  }
+}
