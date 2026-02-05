@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import click
+from click import Context
 
 from growth_agent.config import Settings, reload_settings
 from growth_agent.core.logging import setup_logging
@@ -38,7 +39,8 @@ def init_workflows(settings: Settings, storage: StorageManager) -> dict:
 
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
-def cli(verbose: bool) -> None:
+@click.pass_context
+def cli(ctx: click.Context, verbose: bool) -> None:
     """
     Growth Agent - AI-driven growth and operations system.
 
@@ -58,7 +60,7 @@ def cli(verbose: bool) -> None:
     setup_logging(settings)
 
     # Store settings in context for subcommands
-    click.ctx.obj = {"settings": settings}
+    ctx.obj = {"settings": settings}
 
 
 @cli.command()

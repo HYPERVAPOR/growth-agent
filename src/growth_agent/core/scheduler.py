@@ -34,8 +34,9 @@ def setup_scheduler(settings: Settings, workflows: dict[str, Workflow]) -> Async
 
     # Schedule Workflow B for daily execution at 8 AM Beijing time
     if "workflow_b" in workflows:
-        schedule = settings.ingestion_schedule  # "0 8 * * *" format
-        hour, minute = schedule.split()[1:3]  # Extract hour and minute
+        schedule = settings.ingestion_schedule  # "0 8 * * *" format (minute hour day month weekday)
+        parts = schedule.split()
+        minute, hour = parts[0], parts[1]  # Extract minute and hour
 
         scheduler.add_job(
             workflows["workflow_b"].run,
@@ -68,26 +69,31 @@ def run_scheduler(settings: Settings, workflows: dict[str, Workflow]) -> None:
         settings: Application settings
         workflows: Dictionary of workflow name to workflow instance
     """
+    import asyncio
+
     logger.info("Starting scheduler daemon")
 
-    scheduler = setup_scheduler(settings, workflows)
+    async def run_async() -> None:
+        """Run scheduler in async context."""
+        scheduler = setup_scheduler(settings, workflows)
 
-    # Start scheduler
-    scheduler.start()
+        # Start scheduler
+        scheduler.start()
 
-    logger.info("Scheduler started, waiting for next scheduled execution...")
-    logger.info("Press Ctrl+C to stop")
+        logger.info("Scheduler started, waiting for next scheduled execution...")
+        logger.info("Press Ctrl+C to stop")
 
-    # Keep the program running
-    try:
-        import asyncio
-
-        # Create a never-ending coroutine
-        async def run_forever() -> None:
+        # Keep the program running
+        try:
+            # Sleep forever, checking every hour
             while True:
-                await asyncio.sleep(3600)  # Sleep 1 hour at a time
+                await asyncio.sleep(3600)
+        except (KeyboardInterrupt, SystemExit):
+            logger.info("Scheduler stopped")
+            scheduler.shutdown()
 
-        asyncio.run(run_forever())
+    # Run the async scheduler
+    try:
+        asyncio.run(run_async())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Scheduler stopped")
-        scheduler.shutdown()
