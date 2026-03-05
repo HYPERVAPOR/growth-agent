@@ -5,10 +5,12 @@ This module orchestrates the three-stage pipeline for content intelligence.
 """
 
 import logging
+import random
+from collections import defaultdict
 from datetime import datetime, UTC
 from typing import Any
 
-from growth_agent.config import Settings
+from growth_agent.config import SelectionStrategy, Settings
 from growth_agent.core.llm import LLMClient
 from growth_agent.core.schema import WorkflowResult
 from growth_agent.core.storage import StorageManager
@@ -277,6 +279,75 @@ class WorkflowB(Workflow):
             },
         )
 
+    def _select_items_to_evaluate(self, inbox_items: list) -> list:
+        """
+        Select items from inbox based on configured strategy.
+
+        Args:
+            inbox_items: List of inbox items to select from
+
+        Returns:
+            Selected items for evaluation
+        """
+        if len(inbox_items) <= self.settings.max_curate_items:
+            return inbox_items
+
+        strategy = self.settings.selection_strategy
+        max_items = self.settings.max_curate_items
+
+        if strategy == SelectionStrategy.RECENT_FIRST:
+            # Sort by published_at descending, take most recent
+            sorted_items = sorted(
+                inbox_items,
+                key=lambda x: x.get('published_at', ''),
+                reverse=True
+            )
+            return sorted_items[:max_items]
+
+        elif strategy == SelectionStrategy.RANDOM:
+            # Random sampling
+            return random.sample(inbox_items, max_items)
+
+        elif strategy == SelectionStrategy.BALANCED:
+            # Group by source and author/feed, then sample from each group
+            grouped = defaultdict(list)
+            for item in inbox_items:
+                # Create key based on source type and author/feed
+                if item.get('source') == 'x':
+                    key = ('x', item.get('author_name', 'unknown'))
+                elif item.get('source') == 'rss':
+                    key = ('rss', item.get('feed_title', 'unknown'))
+                else:
+                    key = (item.get('source', 'unknown'), 'unknown')
+
+                grouped[key].append(item)
+
+            # Sample from each group (take most recent from each group)
+            sampled = []
+            max_per_source = self.settings.max_items_per_source_selection
+
+            for group_items in grouped.values():
+                # Sort by published_at within group
+                sorted_group = sorted(
+                    group_items,
+                    key=lambda x: x.get('published_at', ''),
+                    reverse=True
+                )
+                # Take top N from this group
+                sampled.extend(sorted_group[:max_per_source])
+
+            # Finally, sort all sampled items by time and take top max_items
+            sampled_sorted = sorted(
+                sampled,
+                key=lambda x: x.get('published_at', ''),
+                reverse=True
+            )
+            return sampled_sorted[:max_items]
+
+        else:  # CHRONOLOGICAL (original behavior)
+            # Simple slice by write order
+            return inbox_items[:max_items]
+
     def _run_curation(self) -> WorkflowResult:
         """
         Stage 2: LLM evaluation and filtering.
@@ -297,11 +368,15 @@ class WorkflowB(Workflow):
                 metadata={"message": "No items to curate"},
             )
 
-        # Limit items to evaluate (for cost control)
-        items_to_evaluate = inbox_items
-        if len(inbox_items) > self.settings.max_curate_items:
-            self.logger.info(f"Limiting evaluation to {self.settings.max_curate_items} items (from {len(inbox_items)} total)")
-            items_to_evaluate = inbox_items[:self.settings.max_curate_items]
+        # Select items to evaluate using configured strategy
+        items_to_evaluate = self._select_items_to_evaluate(inbox_items)
+        strategy_name = self.settings.selection_strategy.value
+
+        if len(items_to_evaluate) < len(inbox_items):
+            self.logger.info(
+                f"Selected {len(items_to_evaluate)} items from {len(inbox_items)} total "
+                f"using '{strategy_name}' strategy"
+            )
 
         self.logger.info(f"Evaluating {len(items_to_evaluate)} inbox items")
 

@@ -4,11 +4,20 @@ Configuration management using pydantic-settings.
 This module loads and validates all configuration from environment variables.
 """
 
+from enum import Enum
 from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class SelectionStrategy(str, Enum):
+    """Strategy for selecting items from inbox for evaluation."""
+    CHRONOLOGICAL = "chronological"  # By write order (original behavior)
+    RECENT_FIRST = "recent_first"    # By published_at descending
+    RANDOM = "random"                # Random sampling
+    BALANCED = "balanced"            # Sample evenly from each source
 
 
 class Settings(BaseSettings):
@@ -62,6 +71,17 @@ class Settings(BaseSettings):
     )
     blog_generation_enabled: bool = Field(
         default=True, description="Whether to generate blog posts"
+    )
+
+    # Inbox Selection Strategy
+    selection_strategy: SelectionStrategy = Field(
+        default=SelectionStrategy.RECENT_FIRST,
+        description="Strategy for selecting items from inbox for evaluation"
+    )
+    max_items_per_source_selection: int = Field(
+        default=3,
+        ge=1,
+        description="Max items to sample per source (for BALANCED strategy)"
     )
 
     # Ingestion Limits (unified control)
