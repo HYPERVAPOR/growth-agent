@@ -48,6 +48,47 @@ def setup_scheduler(settings: Settings, workflows: dict[str, Workflow]) -> Async
 
         logger.info(f"Scheduled Workflow B for daily execution at {hour}:{minute} {settings.scheduler_timezone}")
 
+    # Schedule Workflow C: GSC metrics (daily at 9 AM)
+    if "workflow_c" in workflows and settings.gsc_enabled:
+        gsc_schedule = settings.gsc_schedule
+        parts = gsc_schedule.split()
+        minute, hour = parts[0], parts[1]
+
+        scheduler.add_job(
+            lambda: workflows["workflow_c"].execute(
+                data_source="gsc",
+                site_url=settings.gsc_site_url,
+                days=7,
+            ),
+            CronTrigger(hour=int(hour), minute=int(minute)),
+            id="workflow_c_gsc_daily",
+            name="Workflow C - GSC Daily Metrics",
+            replace_existing=True,
+        )
+
+        logger.info(f"Scheduled GSC metrics for daily at {hour}:{minute}")
+
+    # Schedule Workflow C: PostHog metrics (every 6 hours)
+    if "workflow_c" in workflows and settings.posthog_enabled:
+        ph_schedule = settings.posthog_schedule
+        parts = ph_schedule.split()
+
+        scheduler.add_job(
+            lambda: workflows["workflow_c"].execute(
+                data_source="posthog",
+                days=1,
+            ),
+            CronTrigger(
+                minute=int(parts[0]),
+                hour=int(parts[1]) if len(parts) > 1 else None,
+            ),
+            id="workflow_c_posthog_6h",
+            name="Workflow C - PostHog Every 6 Hours",
+            replace_existing=True,
+        )
+
+        logger.info("Scheduled PostHog metrics for every 6 hours")
+
     # Setup signal handlers for graceful shutdown
     def signal_handler(signum: int, frame: Any) -> None:
         """Handle shutdown signals gracefully."""

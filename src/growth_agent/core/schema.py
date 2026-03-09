@@ -219,3 +219,100 @@ class ContentEvaluation(BaseModel):
     score: int = Field(..., ge=0, le=100, description="Quality score 0-100")
     summary: str = Field(..., min_length=50, max_length=500, description="Core insights summary")
     comment: str = Field(..., min_length=30, max_length=300, description="Why this content matters")
+
+
+# === Google Search Console Schema ===
+
+
+class GSCMetricStat(BaseModel):
+    """Google Search Console metrics for search performance tracking."""
+
+    id: str = Field(default_factory=lambda: str(uuid4()), description="Unique metric record ID")
+    platform: Literal["gsc"] = Field(default="gsc", description="Platform identifier")
+    data_type: Literal["search_analytics", "page_performance", "index_status", "core_web_vitals"] = Field(
+        ..., description="Type of GSC data"
+    )
+
+    # Common fields
+    url: str = Field(..., description="Page URL (for page-specific metrics)")
+    date: datetime = Field(..., description="Data date (not recorded time)")
+
+    # Search Analytics fields
+    queries: Optional[list[str]] = Field(default=None, description="Search queries")
+    impressions: Optional[int] = Field(default=None, ge=0, description="Number of impressions")
+    clicks: Optional[int] = Field(default=None, ge=0, description="Number of clicks")
+    ctr: Optional[float] = Field(default=None, ge=0, le=100, description="Click-through rate (%)")
+    position: Optional[float] = Field(default=None, ge=0, description="Average position")
+
+    # Page Performance fields
+    device: Optional[Literal["desktop", "mobile", "tablet"]] = Field(default=None, description="Device type")
+    country: Optional[str] = Field(default=None, description="Country code")
+    search_type: Optional[Literal["web", "image", "video", "news", "discover"]] = Field(
+        default=None, description="Search type"
+    )
+
+    # Index Status fields
+    indexed: Optional[bool] = Field(default=None, description="Whether page is indexed")
+    coverage_state: Optional[str] = Field(default=None, description="Coverage state")
+    last_crawled: Optional[datetime] = Field(default=None, description="Last crawl time")
+
+    # Core Web Vitals fields
+    lcp: Optional[float] = Field(default=None, ge=0, description="Largest Contentful Paint (ms)")
+    fid: Optional[float] = Field(default=None, ge=0, description="First Input Delay (ms)")
+    cls: Optional[float] = Field(default=None, ge=0, description="Cumulative Layout Shift")
+    status: Optional[Literal["good", "needs_improvement", "poor"]] = Field(
+        default=None, description="CWV status"
+    )
+
+    recorded_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC), description="When recorded"
+    )
+
+
+# === PostHog Schema ===
+
+
+class PostHogMetricStat(BaseModel):
+    """PostHog analytics metrics for product insights."""
+
+    id: str = Field(default_factory=lambda: str(uuid4()), description="Unique metric record ID")
+    platform: Literal["posthog"] = Field(default="posthog", description="Platform identifier")
+    data_type: Literal["events", "funnels", "trends", "insights", "feature_flags"] = Field(
+        ..., description="Type of PostHog data"
+    )
+
+    # Common fields
+    date: datetime = Field(..., description="Data date")
+
+    # Event data fields
+    event_name: Optional[str] = Field(default=None, description="Event name")
+    event_count: Optional[int] = Field(default=None, ge=0, description="Event occurrence count")
+    unique_users: Optional[int] = Field(default=None, ge=0, description="Unique users count")
+
+    # Funnel data fields
+    funnel_name: Optional[str] = Field(default=None, description="Funnel name")
+    funnel_step: Optional[int] = Field(default=None, ge=1, description="Step number in funnel")
+    conversion_rate: Optional[float] = Field(default=None, ge=0, le=100, description="Conversion rate (%)")
+    dropped_users: Optional[int] = Field(default=None, ge=0, description="Users dropped at this step")
+
+    # Trend data fields
+    trend_name: Optional[str] = Field(default=None, description="Trend name")
+    trend_value: Optional[float] = Field(default=None, description="Trend value")
+    trend_delta: Optional[float] = Field(default=None, description="Change from previous period")
+
+    # Insight data fields
+    insight_type: Optional[str] = Field(default=None, description="Insight type")
+    insight_value: Optional[float] = Field(default=None, description="Insight value")
+    insight_label: Optional[str] = Field(default=None, description="Insight label")
+
+    # Feature flag fields
+    flag_name: Optional[str] = Field(default=None, description="Feature flag name")
+    flag_enabled: Optional[bool] = Field(default=None, description="Whether flag is enabled")
+    flag_rollout_percentage: Optional[int] = Field(default=None, ge=0, le=100, description="Rollout %")
+
+    # Metadata
+    properties: Optional[dict] = Field(default=None, description="Additional event properties")
+
+    recorded_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC), description="When recorded"
+    )

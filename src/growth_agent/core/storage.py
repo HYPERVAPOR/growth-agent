@@ -519,3 +519,21 @@ class StorageManager:
     def write_metrics(self, metrics: list[dict]) -> None:
         """Write metrics (overwrite mode)."""
         self.jsonl.write(Path("metrics/stats.jsonl"), metrics)
+
+    # Google Search Console metrics (Workflow C extension)
+    def read_gsc_metrics(self) -> list[dict]:
+        """Read all GSC metrics."""
+        return self.jsonl.read_all(Path("metrics/gsc_stats.jsonl"))
+
+    def write_gsc_metrics(self, metrics: list[dict]) -> None:
+        """Write GSC metrics (overwrite mode)."""
+        self.jsonl.write(Path("metrics/gsc_stats.jsonl"), metrics)
+
+    # PostHog metrics (Workflow C extension)
+    def read_posthog_metrics(self) -> list[dict]:
+        """Read all PostHog metrics."""
+        return self.jsonl.read_all(Path("metrics/posthog_stats.jsonl"))
+
+    def write_posthog_metrics(self, metrics: list[dict]) -> None:
+        """Write PostHog metrics (overwrite mode)."""
+        self.jsonl.write(Path("metrics/posthog_stats.jsonl"), metrics)

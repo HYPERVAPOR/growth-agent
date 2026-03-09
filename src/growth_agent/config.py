@@ -61,6 +61,21 @@ class Settings(BaseSettings):
     github_token: str | None = Field(default=None, description="GitHub token for Workflow A")
     repo_path: str | None = Field(default=None, description="GitHub repository path (owner/repo) for Workflow A")
 
+    # Google Search Console Configuration
+    gsc_enabled: bool = Field(default=False, description="Enable GSC metrics collection")
+    gsc_site_url: str | None = Field(default=None, description="GSC site URL (e.g., https://example.com)")
+    gsc_service_account_path: str | None = Field(
+        default=None, description="Path to GSC service account JSON credentials"
+    )
+    gsc_client_email: str | None = Field(default=None, description="GSC service account email")
+    gsc_private_key: str | None = Field(default=None, description="GSC service account private key")
+
+    # PostHog Configuration
+    posthog_enabled: bool = Field(default=False, description="Enable PostHog metrics collection")
+    posthog_api_key: str | None = Field(default=None, description="PostHog Personal API Key")
+    posthog_host: str = Field(default="app.posthog.com", description="PostHog instance host")
+    posthog_project_id: str | None = Field(default=None, description="PostHog project ID")
+
     # Workflow B Configuration
     curation_min_score: int = Field(
         default=60, ge=0, le=100, description="Minimum score for curation"
@@ -115,6 +130,8 @@ class Settings(BaseSettings):
     ingestion_schedule: str = Field(
         default="0 8 * * *", description="Cron schedule for ingestion (8 AM Beijing)"
     )
+    gsc_schedule: str = Field(default="0 9 * * *", description="Cron schedule for GSC metrics (9 AM)")
+    posthog_schedule: str = Field(default="0 */6 * * *", description="Cron schedule for PostHog metrics (every 6h)")
 
     # Logging
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field(
@@ -166,6 +183,15 @@ class Settings(BaseSettings):
         return {
             "Authorization": f"token {self.github_token}",
             "Accept": "application/vnd.github.v3+json",
+        }
+
+    def get_posthog_headers(self) -> dict[str, str]:
+        """Get headers for PostHog API requests."""
+        if not self.posthog_api_key:
+            raise ValueError("PostHog API key not configured")
+        return {
+            "Authorization": f"Bearer {self.posthog_api_key}",
+            "Content-Type": "application/json",
         }
 
 
