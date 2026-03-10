@@ -14,6 +14,9 @@ from growth_agent.config import Settings, reload_settings
 from growth_agent.core.logging import setup_logging
 from growth_agent.core.scheduler import run_scheduler
 from growth_agent.core.storage import StorageManager
+from growth_agent.social_listener.config_templates import ensure_default_configs
+from growth_agent.social_listener.reply_handler import handle_selection
+from growth_agent.social_listener.workflow import SocialListenerWorkflow
 from growth_agent.workflows.workflow_a import WorkflowA
 from growth_agent.workflows.workflow_b import WorkflowB
 from growth_agent.workflows.workflow_c import WorkflowC
@@ -34,6 +37,7 @@ def init_workflows(settings: Settings, storage: StorageManager) -> dict:
         "workflow_a": WorkflowA(settings, storage),
         "workflow_b": WorkflowB(settings, storage),
         "workflow_c": WorkflowC(settings, storage),
+        "workflow_d": SocialListenerWorkflow(settings, storage),
     }
 
 
@@ -89,6 +93,11 @@ def init() -> None:
         rss_feeds_path.touch()
         click.echo("✓ Created subscriptions/rss_feeds.jsonl")
 
+    social_config_dir = settings.data_root / "social_listener" / "config"
+    social_sources_path, blog_sources_path = ensure_default_configs(social_config_dir)
+    click.echo(f"✓ Ensured social listener config: {social_sources_path}")
+    click.echo(f"✓ Ensured social listener blog config: {blog_sources_path}")
+
     click.echo("\nInitialization complete!")
     click.echo("\nNext steps:")
     click.echo("1. Add X creators to subscriptions/x_creators.jsonl")
@@ -97,7 +106,7 @@ def init() -> None:
 
 
 @cli.command()
-@click.argument("workflow", type=click.Choice(["workflow-a", "workflow-b", "workflow-c"]))
+@click.argument("workflow", type=click.Choice(["workflow-a", "workflow-b", "workflow-c", "workflow-d"]))
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 def run(workflow: str, verbose: bool) -> None:
     """Run a workflow manually."""
@@ -118,6 +127,7 @@ def run(workflow: str, verbose: bool) -> None:
         "workflow-a": "workflow_a",
         "workflow-b": "workflow_b",
         "workflow-c": "workflow_c",
+        "workflow-d": "workflow_d",
     }
 
     workflow_key = workflow_map.get(workflow)
@@ -180,6 +190,22 @@ def schedule(verbose: bool) -> None:
         run_scheduler(settings, workflows)
     except KeyboardInterrupt:
         click.echo("\nScheduler stopped")
+
+
+@cli.command("social-reply")
+@click.argument("selection")
+@click.option("--force", is_flag=True, help="Regenerate the image even if one already exists")
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+def social_reply(selection: str, force: bool, verbose: bool) -> None:
+    """Handle x1 / b1 style social listener image commands."""
+    settings = reload_settings()
+    if verbose:
+        settings.log_level = "DEBUG"
+    setup_logging(settings)
+
+    reports_dir = settings.data_root / "social_listener" / "reports"
+    response = handle_selection(settings, reports_dir, selection, force=force)
+    click.echo(response)
 
 
 def main() -> None:

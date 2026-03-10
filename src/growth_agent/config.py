@@ -76,6 +76,40 @@ class Settings(BaseSettings):
     posthog_host: str = Field(default="app.posthog.com", description="PostHog instance host")
     posthog_project_id: str | None = Field(default=None, description="PostHog project ID")
 
+    # Social Listener Configuration
+    social_listener_enabled: bool = Field(default=False, description="Enable daily social listener workflow")
+    social_listener_schedule: str = Field(
+        default="30 9 * * *",
+        description="Cron schedule for the social listener workflow",
+    )
+    social_listener_social_config_path: Path | None = Field(
+        default=None,
+        description="Optional path to the social listener social-source config JSON/OPML",
+    )
+    social_listener_blog_config_path: Path | None = Field(
+        default=None,
+        description="Optional path to the social listener blog-source config JSON/OPML",
+    )
+    social_listener_discord_webhook_url: str | None = Field(
+        default=None,
+        description="Discord webhook URL for daily social listener posts",
+    )
+    social_listener_social_hours: int = Field(default=24, ge=1, description="Lookback window for social sources")
+    social_listener_blog_hours: int = Field(default=72, ge=1, description="Lookback window for blog sources")
+    social_listener_social_min_score: int = Field(default=7, ge=0, le=10, description="Min score for social opportunities")
+    social_listener_blog_min_score: int = Field(default=7, ge=0, le=10, description="Min score for blog ideas")
+    social_listener_social_max_eval: int = Field(default=50, ge=1, description="Max social items to evaluate")
+    social_listener_blog_max_eval: int = Field(default=40, ge=1, description="Max blog items to evaluate")
+    social_listener_image_count: int = Field(default=1, ge=0, description="How many top items to generate images for")
+    social_listener_notify_top_k: int = Field(default=3, ge=1, description="How many top items to send to Discord")
+    social_listener_render_images: bool = Field(default=False, description="Render images with qwen-image-2.0")
+    social_listener_image_model: str = Field(default="qwen-image-2.0", description="Image generation model name")
+    dashscope_api_key: str | None = Field(default=None, description="DashScope API key for qwen-image-2.0")
+    dashscope_base_url: str = Field(
+        default="https://dashscope.aliyuncs.com/api/v1",
+        description="DashScope base URL",
+    )
+
     # Workflow B Configuration
     curation_min_score: int = Field(
         default=60, ge=0, le=100, description="Minimum score for curation"

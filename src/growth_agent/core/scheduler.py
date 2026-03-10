@@ -89,6 +89,21 @@ def setup_scheduler(settings: Settings, workflows: dict[str, Workflow]) -> Async
 
         logger.info("Scheduled PostHog metrics for every 6 hours")
 
+    if "workflow_d" in workflows and settings.social_listener_enabled:
+        social_schedule = settings.social_listener_schedule
+        parts = social_schedule.split()
+        minute, hour = parts[0], parts[1]
+
+        scheduler.add_job(
+            workflows["workflow_d"].run,
+            CronTrigger(hour=int(hour), minute=int(minute)),
+            id="workflow_d_daily",
+            name="Workflow D - PuppyOne Social Listener",
+            replace_existing=True,
+        )
+
+        logger.info("Scheduled Workflow D for daily execution at %s:%s", hour, minute)
+
     # Setup signal handlers for graceful shutdown
     def signal_handler(signum: int, frame: Any) -> None:
         """Handle shutdown signals gracefully."""

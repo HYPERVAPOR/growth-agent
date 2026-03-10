@@ -342,6 +342,8 @@ class StorageManager:
             "logs",
             "index",
             "schemas",
+            "social_listener/config",
+            "social_listener/reports",
         ]
 
         for dir_path in dirs:

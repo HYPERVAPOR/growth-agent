@@ -106,6 +106,30 @@ uv run python scripts/sync_metrics.py --source all
 - `data/metrics/gsc_stats.jsonl` - Google Search Console data
 - `data/metrics/posthog_stats.jsonl` - PostHog analytics data
 
+### 📣 Workflow D: PuppyOne Social Listener
+
+**Status:** ✅ Integrated | **Purpose:** Discover daily social opportunities and blog ideas, optionally render images, and post to Discord
+
+```bash
+# Initialize the default social listener configs
+python -m growth_agent.main init
+
+# Run the social listener manually
+python -m growth_agent.main run workflow-d
+
+# Handle x1 / b1 style image regeneration commands
+python -m growth_agent.main social-reply x1
+python -m growth_agent.main social-reply b1 --force
+```
+
+**What it does:**
+- Fetches RSS / X-RSS sources from `data/social_listener/config/sources.json`
+- Fetches blog-material sources from `data/social_listener/config/blog_sources.json`
+- Scores social post opportunities and SEO blog ideas with PuppyOne-specific prompts
+- Saves JSON / Markdown / text reports to `data/social_listener/reports/`
+- Optionally renders top images via `qwen-image-2.0`
+- Optionally sends a daily digest and top items to Discord via webhook
+
 ---
 
 ## ✨ Features
@@ -209,6 +233,16 @@ POSTHOG_ENABLED=true
 POSTHOG_API_KEY=phx_your_project_api_key_here  # Use Project API Key, not Personal
 POSTHOG_HOST=app.posthog.com
 POSTHOG_PROJECT_ID=your_project_id
+
+# Optional - Workflow D (PuppyOne Social Listener)
+SOCIAL_LISTENER_ENABLED=true
+SOCIAL_LISTENER_DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+SOCIAL_LISTENER_RENDER_IMAGES=false
+SOCIAL_LISTENER_IMAGE_COUNT=1
+
+# Optional - qwen-image-2.0 rendering
+DASHSCOPE_API_KEY=your_dashscope_api_key_here
+DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/api/v1
 
 # LLM Configuration
 LLM_MODEL=anthropic/claude-3.5-sonnet
