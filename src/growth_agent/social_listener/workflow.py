@@ -61,6 +61,7 @@ class SocialListenerWorkflow(Workflow):
         social_opportunities = [
             item for item in social_opportunities if item.score >= self.settings.social_listener_social_min_score
         ]
+        social_opportunities = social_opportunities[: self.settings.social_listener_notify_top_k]
 
         blog_items = self.fetcher.fetch_all(blog_sources, self.settings.social_listener_blog_hours)
         blog_candidates = self.blog_filter.filter(blog_items)
@@ -69,6 +70,7 @@ class SocialListenerWorkflow(Workflow):
         blog_opportunities = [
             item for item in blog_opportunities if item.score >= self.settings.social_listener_blog_min_score
         ]
+        blog_opportunities = blog_opportunities[: self.settings.social_listener_notify_top_k]
 
         run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         self._generate_assets(run_id, social_opportunities, blog_opportunities)
