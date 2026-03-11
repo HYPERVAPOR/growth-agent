@@ -38,6 +38,14 @@ Strong relevance signals:
 - agent access to Gmail, Calendar, GitHub, Notion, Drive, Slack, APIs, filesystems
 - auth, permissions, scopes, sandboxing, auditability, least privilege
 - why agents can chat but fail at real work because they lack live data or tools
+- context engineering, context file system, AI agent memory, context management
+- version control for agents, rollback, snapshots, audit logs, tamper-evident logs
+- multi-agent collaboration, multi-agent security, agent governance
+- AI running amok, rogue agent, AI data loss, blast radius, AI out of control
+- human-in-the-loop approvals, least privilege, default-deny, access control
+- agentic RAG, retrieval-augmented generation, hybrid indexing, deep research
+- token pressure, context churn, prompt injection, runtime isolation
+- self-hosted AI, private deployment, enterprise governance, enterprise AI security
 
 Scoring:
 - 9-10: strong PuppyOne angle, highly worth posting
@@ -133,6 +141,7 @@ class BlogSignalFilter:
         "model context protocol",
         "mcp",
         "agent",
+        "multi-agent",
         "tool calling",
         "function calling",
         "oauth",
@@ -141,11 +150,16 @@ class BlogSignalFilter:
         "identity",
         "permission",
         "access control",
+        "least privilege",
         "sandbox",
+        "runtime isolation",
         "connector",
         "integration",
         "workflow",
         "context",
+        "context engineering",
+        "context file system",
+        "context management",
         "memory",
         "data access",
         "private data",
@@ -156,6 +170,26 @@ class BlogSignalFilter:
         "notion",
         "drive",
         "slack",
+        "version control",
+        "audit log",
+        "audit trail",
+        "tamper-evident",
+        "rollback",
+        "snapshot",
+        "agentic rag",
+        "retrieval-augmented generation",
+        "rag",
+        "hybrid indexing",
+        "deep research",
+        "enterprise governance",
+        "self-hosted",
+        "private deployment",
+        "blast radius",
+        "human-in-the-loop",
+        "token pressure",
+        "rogue agent",
+        "ai agent security",
+        "agent governance",
     ]
 
     HIGH_SIGNAL_SOURCES = {
@@ -207,12 +241,17 @@ class BlogIdeaEvaluator:
 PuppyOne helps AI agents securely access real-world data and tools across systems like Gmail, Calendar, GitHub, Notion, Drive and Slack.
 
 Assess whether this source is worth turning into a PuppyOne SEO article. Prefer:
-- secure agent data access
-- MCP and connector layer design
-- auth, permissions, scopes, sandboxing, audit
-- why agents fail outside the chat window
-- RAG vs live tool access
+- secure agent data access, context file system, AI agent workspace
+- MCP and connector layer design, model context protocol integration
+- auth, permissions, scopes, sandboxing, audit logs, tamper-evident logs
+- why agents fail outside the chat window, token pressure, context churn
+- RAG vs live tool access, agentic RAG, hybrid indexing, deep research
 - production agent architecture and multi-tool workflows
+- version control for agents, rollback, snapshots, traceable AI
+- multi-agent security, enterprise AI governance, least privilege, default-deny
+- AI running amok, rogue agent, blast radius, human-in-the-loop
+- self-hosted AI, private deployment, enterprise governance, runtime isolation
+- context engineering, context management, AI agent memory
 
 If score >= 7, return JSON:
 {
