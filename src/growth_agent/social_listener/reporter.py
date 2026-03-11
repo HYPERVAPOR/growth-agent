@@ -23,25 +23,34 @@ def build_social_text_report(opportunities: list[Opportunity], generated_at: dat
         "PuppyOne Social Opportunities",
         f"Generated: {generated_at.strftime('%Y-%m-%d %H:%M:%S')}",
         f"High-value opportunities: {len(opportunities)}",
-        "Score | Author | Core angle",
     ]
-    for opp in opportunities:
-        author = (opp.source_content or {}).get("author", "Unknown")
-        lines.append(f"{opp.score}/10 | {author} | {_truncate(opp.reason, 48)}")
 
-    lines.append("Details")
     for index, opp in enumerate(opportunities, start=1):
         source = opp.source_content or {}
-        lines.append(f"{index}. Score: {opp.score}/10 | Author: {source.get('author', 'Unknown')}")
-        lines.append(_compact_line("Angle", opp.reason))
-        lines.append(_compact_line("Suggested tweet", opp.suggested_tweet))
-        lines.append(_compact_line("Link", source.get("link", "N/A")))
+        author = source.get("author") or "Unknown"
+        link = source.get("link", "N/A")
+        pub_date = source.get("pub_date") or source.get("published_at") or source.get("published") or "N/A"
+        source_summary = source.get("content") or source.get("summary") or ""
+
+        lines.append("")
+        lines.append(f"##{opp.score}/10 {index}. {author}")
+        lines.append(f"**链接:** [{link}]({link})")
+        lines.append(f"**发布时间:** {pub_date}")
+        lines.append("**匹配原因:**")
+        lines.append(opp.reason or "N/A")
+        lines.append("**原创推文（可直接发布）:**")
+        lines.append(f"> {opp.suggested_tweet or 'N/A'}")
+        if source_summary:
+            lines.append("**原文摘要:**")
+            lines.append(_truncate(source_summary, 300))
         if opp.image_asset:
             asset = opp.image_asset
             lines.append(_compact_line("Image direction", asset.get("visual_direction", "N/A")))
             paths = asset.get("image_paths") or []
             if paths:
                 lines.append(_compact_line("Image files", ", ".join(paths)))
+
+    lines.append("")
     lines.append("Reply with x1/x2/... to regenerate a social image.")
     return "\n".join(lines)
 
