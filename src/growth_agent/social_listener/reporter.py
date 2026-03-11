@@ -51,32 +51,43 @@ def build_blog_text_report(opportunities: list[BlogOpportunity], generated_at: d
         "PuppyOne Blog Materials",
         f"Generated: {generated_at.strftime('%Y-%m-%d %H:%M:%S')}",
         f"Selected blog ideas: {len(opportunities)}",
-        "Score | Title | Keyword | Source",
     ]
-    for opp in opportunities:
-        source = opp.source_content or {}
-        lines.append(
-            f"{opp.score}/10 | {_truncate(opp.suggested_title, 36)} | "
-            f"{_truncate(opp.target_keyword, 24)} | {_truncate(source.get('source', 'Unknown'), 18)}"
-        )
 
-    lines.append("Details")
     for index, opp in enumerate(opportunities, start=1):
         source = opp.source_content or {}
-        lines.append(f"{index}. Score: {opp.score}/10 | Title: {_truncate(opp.suggested_title, 120)}")
-        lines.append(_compact_line("Target keyword", opp.target_keyword))
-        lines.append(_compact_line("Search intent", opp.search_intent))
-        lines.append(_compact_line("Angle", opp.blog_angle))
-        lines.append(_compact_line("Reason", opp.reason))
-        lines.append(_compact_line("Link", source.get("link", "N/A")))
+        source_name = source.get("source") or source.get("author") or "Unknown"
+        source_author = source.get("author") or source_name
+        link = source.get("link", "N/A")
+        published = source.get("pub_date") or source.get("published_at") or source.get("published") or "N/A"
+
+        lines.append("")
+        lines.append(f"##{opp.score}/10 {index}. {opp.suggested_title or 'Untitled'}")
+        lines.append(f"- 目标关键词: {opp.target_keyword or 'N/A'}")
+        lines.append(f"- 搜索意图: {opp.search_intent or 'N/A'}")
+        lines.append(f"- 写作角度: {opp.blog_angle or 'N/A'}")
+        lines.append(f"- 来源: {source_author} / {source_name}")
+        lines.append(f"- 原文链接: {link}")
+        lines.append(f"- 发布时间: {published}")
+        if opp.secondary_keywords:
+            lines.append(f"- 次关键词: {', '.join(opp.secondary_keywords)}")
+        lines.append("**为什么值得写**")
+        lines.append(opp.reason or "N/A")
         if opp.outline:
-            lines.append(_compact_line("Outline", " | ".join(opp.outline)))
+            lines.append("**建议结构**")
+            for step in opp.outline:
+                lines.append(f"- {step}")
+        source_summary = source.get("content") or source.get("summary") or ""
+        if source_summary:
+            lines.append("**原文摘要**")
+            lines.append(_truncate(source_summary, 300))
         if opp.image_asset:
             asset = opp.image_asset
             lines.append(_compact_line("Cover direction", asset.get("visual_direction", "N/A")))
             paths = asset.get("image_paths") or []
             if paths:
                 lines.append(_compact_line("Cover files", ", ".join(paths)))
+
+    lines.append("")
     lines.append("Reply with b1/b2/... to regenerate a blog cover.")
     return "\n".join(lines)
 
