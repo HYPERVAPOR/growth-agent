@@ -20,6 +20,7 @@ from growth_agent.social_listener.workflow import SocialListenerWorkflow
 from growth_agent.workflows.workflow_a import WorkflowA
 from growth_agent.workflows.workflow_b import WorkflowB
 from growth_agent.workflows.workflow_c import WorkflowC
+from growth_agent.reddit_patrol.main import main as reddit_patrol_main
 
 
 def init_workflows(settings: Settings, storage: StorageManager) -> dict:
@@ -206,6 +207,12 @@ def social_reply(selection: str, force: bool, verbose: bool) -> None:
     reports_dir = settings.data_root / "social_listener" / "reports"
     response = handle_selection(settings, reports_dir, selection, force=force)
     click.echo(response)
+
+
+@cli.command("reddit-patrol")
+def reddit_patrol() -> None:
+    """Launch Reddit Patrol console."""
+    reddit_patrol_main()
 
 
 def main() -> None:
