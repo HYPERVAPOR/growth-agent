@@ -1,0 +1,15 @@
+# 全局基础配置
+# 放在 growth_agent.reddit_patrol 内部，逻辑与旧版保持一致
+adspower:
+  api_key: "14b174bd36f68f53e37769483ef3fbd30080b9f0ae6f091a"
+  base_url: "http://127.0.0.1:50325"
+  default_user_id: "k195ng7g"
+
+openrouter:
+  api_key: "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"
+  model: "deepseek/deepseek-chat"
+
+defaults:
+  max_posts: 50
+  mode: "tech"
+
