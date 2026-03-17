@@ -534,6 +534,30 @@ class WorkflowC(Workflow):
                 errors.append(error_msg)
                 self.logger.error(error_msg)
 
+            # Fetch event properties
+            self.logger.info("Fetching PostHog event properties...")
+            try:
+                event_properties = self.posthog_ingestor.fetch_event_properties()
+                all_metrics.extend(event_properties)
+                metadata["event_properties_count"] = len(event_properties)
+                self.logger.info(f"Fetched {len(event_properties)} event properties")
+            except Exception as e:
+                error_msg = f"Failed to fetch event properties: {e}"
+                errors.append(error_msg)
+                self.logger.error(error_msg)
+
+            # Fetch person properties
+            self.logger.info("Fetching PostHog person properties...")
+            try:
+                person_properties = self.posthog_ingestor.fetch_person_properties()
+                all_metrics.extend(person_properties)
+                metadata["person_properties_count"] = len(person_properties)
+                self.logger.info(f"Fetched {len(person_properties)} person properties")
+            except Exception as e:
+                error_msg = f"Failed to fetch person properties: {e}"
+                errors.append(error_msg)
+                self.logger.error(error_msg)
+
             # Save all metrics to storage
             if all_metrics:
                 self.logger.info("Saving PostHog metrics to storage...")

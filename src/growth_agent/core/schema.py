@@ -277,7 +277,7 @@ class PostHogMetricStat(BaseModel):
 
     id: str = Field(default_factory=lambda: str(uuid4()), description="Unique metric record ID")
     platform: Literal["posthog"] = Field(default="posthog", description="Platform identifier")
-    data_type: Literal["events", "funnels", "trends", "insights", "feature_flags"] = Field(
+    data_type: Literal["events", "funnels", "trends", "insights", "feature_flags", "event_properties", "person_properties"] = Field(
         ..., description="Type of PostHog data"
     )
 
@@ -309,6 +309,18 @@ class PostHogMetricStat(BaseModel):
     flag_name: Optional[str] = Field(default=None, description="Feature flag name")
     flag_enabled: Optional[bool] = Field(default=None, description="Whether flag is enabled")
     flag_rollout_percentage: Optional[int] = Field(default=None, ge=0, le=100, description="Rollout %")
+
+    # Event properties fields
+    event_property_name: Optional[str] = Field(default=None, description="Event property name")
+    event_property_type: Optional[str] = Field(default=None, description="Event property data type")
+    event_property_usage_count: Optional[int] = Field(default=None, ge=0, description="Event property usage count")
+    event_properties_total: Optional[int] = Field(default=None, ge=0, description="Total event properties count")
+
+    # Person properties fields
+    person_property_name: Optional[str] = Field(default=None, description="Person property name")
+    person_property_type: Optional[str] = Field(default=None, description="Person property data type")
+    person_property_usage_count: Optional[int] = Field(default=None, ge=0, description="Person property usage count")
+    person_properties_total: Optional[int] = Field(default=None, ge=0, description="Total person properties count")
 
     # Metadata
     properties: Optional[dict] = Field(default=None, description="Additional event properties")
