@@ -1,15 +1,27 @@
 # 全局基础配置
 # 放在 growth_agent.reddit_patrol 内部，逻辑与旧版保持一致
 adspower:
-  api_key: "14b174bd36f68f53e37769483ef3fbd30080b9f0ae6f091a"
+  api_key: ${ADSPower_API_KEY}
   base_url: "http://127.0.0.1:50325"
   default_user_id: "k195ng7g"
 
 openrouter:
-  api_key: "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"
+  api_key: ${OPENROUTER_API_KEY}
   model: "deepseek/deepseek-chat"
 
+rapidapi:
+  # 开启后，巡检会优先走 RapidAPI（不依赖本地 AdsPower / Reddit 官方 API）
+  enabled: true
+  # REQUEST URL（支持 {subreddit} 占位符，每个 subreddit 会替换一次）
+  # 例: "https://<your-rapidapi-endpoint>/r/{subreddit}/new?limit=25"
+  request_url: "https://reddit34.p.rapidapi.com/getPostsBySubreddit?subreddit={subreddit}&sort=new"
+  # RapidAPI Key（对应请求头 X-RapidAPI-Key）
+  api_key: ${X_RAPIDAPI_KEY}
+  # 有些 RapidAPI 端点需要该请求头（X-RapidAPI-Host）。留空会尝试从 request_url 域名推断。
+  api_host: "reddit34.p.rapidapi.com"
+  timeout_s: 40
+
 defaults:
-  max_posts: 50
+  max_age_days: 2
   mode: "tech"
 

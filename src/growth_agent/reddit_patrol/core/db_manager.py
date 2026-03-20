@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 
 class DBManager:
@@ -32,7 +32,8 @@ class DBManager:
         if any(p["post_id"] == post_data["post_id"] for p in data):
             return False
         post_data["status"] = "pending"
-        post_data["timestamp"] = datetime.now().isoformat()
+        cn_tz = timezone(timedelta(hours=8))
+        post_data["timestamp"] = datetime.now(cn_tz).isoformat()
         data.append(post_data)
         self._save_data(data)
         return True

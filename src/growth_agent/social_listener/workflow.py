@@ -73,7 +73,8 @@ class SocialListenerWorkflow(Workflow):
         blog_opportunities = blog_opportunities[: self.settings.social_listener_notify_top_k]
 
         run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self._generate_assets(run_id, social_opportunities, blog_opportunities)
+        # 图片按需生成（用户回复 x1/b1 时触发），不在 workflow 运行时自动生成
+        # self._generate_assets(run_id, social_opportunities, blog_opportunities)
         social_json, social_md, _ = save_social_report(social_opportunities, self.reports_dir, run_id)
         blog_json, blog_md, _ = save_blog_report(blog_opportunities, self.reports_dir, run_id)
 
