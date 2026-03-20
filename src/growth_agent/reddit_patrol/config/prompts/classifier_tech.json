@@ -17,7 +17,10 @@
       "Unclear intent but RAG related; Frustration with LangChain/current tools; Competitor mentions."
     ],
     "no": [
-      "Pure self-promotion; Tutorial sharing; Model comparison only; Post is 'Removed' or 'Locked'."
+      "Pure self-promotion; Tutorial sharing; Model comparison only.",
+      "Post is 'Removed', 'Deleted', or 'Locked' — MUST be tagged 'no', score 0, no exceptions.",
+      "Post has 0 comments and 0-1 upvotes (no community engagement, likely dead or shadowbanned).",
+      "Only the OP has commented (no replies from others), indicating the thread is dead or ignored by the community."
     ]
   },
   "priority_guidance": "If relevance is high but the post is very old, the 'tag' can be 'yes' but the 'ai_score' should be lower.",

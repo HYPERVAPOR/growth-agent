@@ -1,6 +1,8 @@
 import json
 import os
 import random
+import sys
+import argparse
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
@@ -8,9 +10,8 @@ import requests
 import yaml
 
 from .core.ai_handler import AIHandler
-from .core.browser_engine import BrowserEngine
 from .core.db_manager import DBManager
-from .core.scraper import fetch_posts_via_playwright
+from .core.rapidapi_scraper import fetch_posts_via_rapidapi, load_rapidapi_config
 
 
 class Placeholder:
@@ -25,25 +26,6 @@ def _load_settings() -> Dict[str, Any]:
     config_path = os.path.join(base_dir, "config", "settings.yaml")
     with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
-
-
-def _init_browser() -> Any:
-    """从 config/settings.yaml 加载 AdsPower 配置并初始化浏览器引擎。"""
-    try:
-        cfg = _load_settings()
-        ads_cfg = cfg.get("adspower", {})
-        api_key = ads_cfg.get("api_key")
-        base_url = ads_cfg.get("base_url", "http://127.0.0.1:50325")
-        user_id = ads_cfg.get("default_user_id")
-
-        if not (api_key and user_id):
-            print("⚠️ AdsPower 配置不完整，使用占位浏览器。")
-            return Placeholder()
-
-        return BrowserEngine(api_key=api_key, base_url=base_url, user_id=user_id)
-    except Exception as e:
-        print(f"⚠️ 无法加载 AdsPower 配置: {e}")
-        return Placeholder()
 
 
 def _init_ai() -> Any:
@@ -142,6 +124,45 @@ def _score_with_ai(
     return selected
 
 
+def _score_one_with_ai(
+    ai_client: Any, classifier_prompt: Dict[str, Any], post: Dict[str, Any]
+) -> Dict[str, Any] | None:
+    """对单条帖子进行 AI 评分，返回带 ai_* 字段的 post（不满足则返回 None）。"""
+    if isinstance(ai_client, Placeholder):
+        return post
+
+    now_utc = datetime.now(timezone.utc)
+    now_cn = now_utc + timedelta(hours=8)
+
+    created_ts = post.get("created_utc") or 0
+    try:
+        post_time = datetime.fromtimestamp(float(created_ts), tz=timezone.utc) + timedelta(
+            hours=8
+        )
+    except Exception:
+        post_time = now_cn
+
+    payload = {
+        "title": post.get("title"),
+        "upvotes": post.get("upvotes", 0),
+        "comments_count": post.get("comments_count", 0),
+        "post_time": post_time.isoformat(),
+        "current_time": now_cn.isoformat(),
+    }
+    res = ai_client.call(system_rules=classifier_prompt, user_data=payload)
+    if not res:
+        return None
+
+    tag = res.get("tag", "no")
+    score = res.get("ai_score", 0)
+    if tag in {"yes", "maybe"} and score >= 25:
+        post["ai_tag"] = tag
+        post["ai_score"] = score
+        post["ai_reason"] = res.get("reasoning", "")
+        return post
+    return None
+
+
 def _generate_comment(
     ai_client: Any, generator_prompt: Dict[str, Any], post: Dict[str, Any]
 ) -> str:
@@ -164,28 +185,30 @@ def _generate_comment(
 
 # 初始化账本与服务
 db = DBManager()
-browser = _init_browser()
 ai = _init_ai()
 
 
 def run_patrol():
     """执行巡检任务的逻辑"""
     print("\n🚀 开始 Reddit 巡检...")
-    mode = input("请输入巡检模式 (tech/everyday): ").strip() or "tech"
-
-    # 尝试启动 AdsPower 浏览器环境
-    ws_url = None
-    try:
-        ws_url = browser.get_ws_url()
-        if ws_url:
-            print("✅ 已请求 AdsPower 打开浏览器环境。")
-        else:
-            print(
-                "⚠️ AdsPower 启动失败，请检查本地 AdsPower 是否已打开，并确认 config/settings.yaml 配置正确。"
-            )
-    except Exception as e:
-        print(f"⚠️ 调用 AdsPower 失败: {e}")
-        ws_url = None
+    settings = _load_settings()
+    mode = (
+        os.getenv("REDDIT_PATROL_MODE")
+        or (input("请输入巡检模式 (tech/everyday): ").strip() if sys.stdin.isatty() else "")
+        or settings.get("defaults", {}).get("mode", "tech")
+        or "tech"
+    )
+    # 评估预算：最多评估多少条帖子（与“要新增几条”解耦）
+    # 说明：用户说“要 1 条”只影响 target_new，不应该把评估预算也限制成 1。
+    eval_budget = int(os.getenv("REDDIT_PATROL_EVAL_BUDGET") or 50)
+    max_age_days = int(
+        os.getenv("REDDIT_PATROL_MAX_AGE_DAYS")
+        or settings.get("defaults", {}).get("max_age_days", 2)
+        or 2
+    )
+    # 本轮目标新增条数：由 OpenClaw 对话理解后注入环境变量（不写入 settings.yaml）
+    # 0 表示不限制，但为了效率建议总是设置一个正整数。
+    target_new = int(os.getenv("REDDIT_PATROL_TARGET_NEW") or 0)
 
     mode = "tech" if mode.lower().startswith("t") else "everyday"
 
@@ -205,64 +228,107 @@ def run_patrol():
 
     ai_client = ai
 
-    if not ws_url:
-        print("☹️ 未能成功启动 AdsPower 浏览器环境，本轮巡检终止。")
+    # 流式巡检：逐个 subreddit 拉取，逐条评分；满足 target_new 后立刻停止继续抓取
+    try:
+        rapid_cfg = load_rapidapi_config(settings)
+        if not (
+            rapid_cfg.get("enabled")
+            and rapid_cfg.get("request_url")
+            and rapid_cfg.get("api_key")
+        ):
+            print("☹️ RapidAPI 未配置或未启用：请检查 settings.yaml 的 rapidapi.* 配置。")
+            return
+    except Exception as e:
+        print(f"⚠️ RapidAPI 配置读取失败: {e}")
         return
 
-    # 通过浏览器抓取最新帖子
-    raw_posts = fetch_posts_via_playwright(
-        ws_url=ws_url,
-        subreddits=subreddits,
-        keywords=keywords,
-        max_total_hits=50,
-        max_age_days=2,
-    )
-    if not raw_posts:
-        print("☹️ 未从 Reddit 抓到任何帖子，请稍后重试。")
-        return
+    print("🌐 使用 RapidAPI 抓取帖子（逐条评分，命中即停）。")
 
-    print(f"🔎 共抓取 {len(raw_posts)} 条帖子，按关键词初筛中...")
-    filtered = _filter_by_keywords(raw_posts, keywords)
-    print(f"✅ 关键词筛选后剩余 {len(filtered)} 条。正在使用 AI 评分...")
-
-    # 用 AI 打分筛选高价值帖子
-    scored = _score_with_ai(ai_client, prompts["classifier"], filtered)
-    print(f"✨ AI 评估后保留 {len(scored)} 条候选帖子。")
-
-    if not scored:
-        print("☹️ 本轮没有高价值帖子。")
-        return
-
-    # 逐条生成评论并写入数据库
+    fetched_total = 0
     new_count = 0
-    for p in scored:
-        post_id = p["post_id"]
-        title = p["title"]
-        url = p["url"]
-        subreddit = p["subreddit"]
-        score = p.get("ai_score", 0)
 
-        generated_comment = _generate_comment(ai_client, prompts["generator"], p)
+    # 每个 subreddit 最多取多少条用于逐条评估（避免一次抓太多）
+    per_sub_limit = int(os.getenv("REDDIT_PATROL_PER_SUB_LIMIT") or 10)
+    if per_sub_limit <= 0:
+        per_sub_limit = 25
+    per_sub_limit = min(50, per_sub_limit)
 
-        post_record = {
-            "post_id": post_id,
-            "title": title,
-            "url": url,
-            "mode": mode,
-            "score": float(score),
-            "generated_comment": generated_comment,
-        }
+    for sub in subreddits:
+        if target_new > 0 and new_count >= target_new:
+            break
+        if fetched_total >= eval_budget:
+            break
 
-        if db.add_post(post_record):
-            new_count += 1
-            print(f"✅ 新增高价值帖子：[{subreddit}] {title} (score={score})")
-        else:
-            print(f"↩️ 已存在，跳过：[{subreddit}] {title}")
+        # 对单个 subreddit 请求一次，拿到一页 posts（随后逐条处理）
+        remaining = eval_budget - fetched_total
+        take = min(per_sub_limit, remaining)
+        posts = fetch_posts_via_rapidapi(
+            request_url=rapid_cfg["request_url"],
+            api_key=rapid_cfg["api_key"],
+            api_host=rapid_cfg.get("api_host"),
+            timeout_s=int(rapid_cfg.get("timeout_s") or 30),
+            subreddits=[sub],
+            keywords=[],
+            max_total_hits=take,
+            max_age_days=max_age_days,
+        )
+        if not posts:
+            continue
+
+        for p in posts:
+            if target_new > 0 and new_count >= target_new:
+                break
+            if fetched_total >= eval_budget:
+                break
+
+            fetched_total += 1
+
+            # 关键词过滤（若 keywords 为空则不触发）
+            if keywords:
+                title_lower = (p.get("title") or "").lower()
+                if not any(k.lower() in title_lower for k in keywords):
+                    continue
+
+            scored_post = _score_one_with_ai(ai_client, prompts["classifier"], p)
+            if not scored_post:
+                continue
+
+            score = scored_post.get("ai_score", 0)
+            generated_comment = _generate_comment(
+                ai_client, prompts["generator"], scored_post
+            )
+
+            post_record = {
+                "post_id": scored_post["post_id"],
+                "title": scored_post["title"],
+                "url": scored_post["url"],
+                "mode": mode,
+                "score": float(score),
+                "generated_comment": generated_comment,
+            }
+
+            if db.add_post(post_record):
+                new_count += 1
+                print(
+                    f"✅ 新增高价值帖子：[{scored_post.get('subreddit')}] "
+                    f"{scored_post.get('title')} (score={score})"
+                )
+            else:
+                print(f"↩️ 已存在，跳过：[{scored_post.get('subreddit')}] {scored_post.get('title')}")
+
+    if fetched_total == 0:
+        print("☹️ RapidAPI 未返回帖子，请检查配额/鉴权/endpoint 是否可用。")
+        return
 
     if new_count == 0:
-        print("☹️ 本轮没有新增高价值帖子（可能都已在账本中）。")
+        print(f"☹️ 本轮未新增高价值帖子（已评估 {fetched_total} 条）。")
     else:
-        print(f"🎉 本轮巡检完成，共新增 {new_count} 条高价值帖子，已存入待发布清单。")
+        if target_new > 0:
+            print(
+                f"🎉 本轮巡检完成：评估 {fetched_total} 条，新增 {new_count}/{target_new} 条。"
+            )
+        else:
+            print(f"🎉 本轮巡检完成：评估 {fetched_total} 条，新增 {new_count} 条。")
 
 
 def list_and_mark():
@@ -298,6 +364,44 @@ def list_and_mark():
 
 
 def main():
+    """
+    交互式：显示菜单（适合本地终端手动跑）
+    非交互式（OpenClaw/CI）：默认直接跑一次巡检并退出
+
+    CLI:
+      - patrol: python3 scripts/reddit_patrol.py patrol --mode tech
+      - list:   python3 scripts/reddit_patrol.py list
+    """
+    parser = argparse.ArgumentParser(prog="reddit-patrol", add_help=True)
+    sub = parser.add_subparsers(dest="cmd")
+
+    p_patrol = sub.add_parser("patrol", help="run patrol once")
+    p_patrol.add_argument(
+        "--mode",
+        choices=["tech", "everyday"],
+        default=None,
+        help="patrol mode (overrides defaults.mode)",
+    )
+
+    sub.add_parser("list", help="list pending and mark published (interactive)")
+
+    args, _unknown = parser.parse_known_args()
+
+    if args.cmd == "patrol":
+        if args.mode:
+            os.environ["REDDIT_PATROL_MODE"] = args.mode
+        run_patrol()
+        return
+    if args.cmd == "list":
+        list_and_mark()
+        return
+
+    # 没有显式命令：在非交互场景下默认跑一次巡检
+    if not sys.stdin.isatty():
+        run_patrol()
+        return
+
+    # 交互菜单
     while True:
         print("\n=== Reddit Patrol 控制台 ===")
         print("1. 执行巡检 (Patrol)")

@@ -1,0 +1,44 @@
+{
+  "sources": [
+    {
+      "name": "Simon Willison",
+      "url": "https://simonwillison.net/atom/entries/",
+      "type": "atom"
+    },
+    {
+      "name": "GitHub Blog",
+      "url": "https://github.blog/feed/",
+      "type": "rss"
+    },
+    {
+      "name": "LangChain Blog",
+      "url": "https://blog.langchain.com/rss/",
+      "type": "rss"
+    },
+    {
+      "name": "Vercel Blog",
+      "url": "https://vercel.com/atom",
+      "type": "atom"
+    },
+    {
+      "name": "Martin Fowler",
+      "url": "https://martinfowler.com/bliki/bliki.atom",
+      "type": "atom"
+    },
+    {
+      "name": "Google Search Central",
+      "url": "https://feeds.feedburner.com/blogspot/amDG",
+      "type": "rss"
+    },
+    {
+      "name": "Cloudflare Blog",
+      "url": "https://blog.cloudflare.com/rss/",
+      "type": "rss"
+    },
+    {
+      "name": "MCP Specification Releases",
+      "url": "https://github.com/modelcontextprotocol/specification/releases.atom",
+      "type": "atom"
+    }
+  ]
+}
