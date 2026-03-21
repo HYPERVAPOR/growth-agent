@@ -471,91 +471,10 @@ class PostHogIngestor:
         Returns:
             List of PostHogMetricStat objects with event property metadata
         """
-        logger.info("Fetching PostHog event properties")
-
-        metrics_list = []
-
-        try:
-            # Query recent events and extract properties
-            # Use INTERVAL syntax for date filtering in HogQL
-            query = f"""
-                SELECT
-                    event,
-                    properties
-                FROM events
-                WHERE timestamp >= now() - INTERVAL {days} DAY
-                LIMIT {sample_size}
-            """
-
-            results = self._execute_hogql_query(
-                query=query,
-                name="fetch_event_properties_sample",
-            )
-
-            if not results:
-                logger.warning("No events found for property extraction")
-                return []
-
-            # Extract all unique property names and types
-            import json
-
-            property_stats = {}  # {property_name: {"count": int, "types": set}}
-
-            for row in results:
-                props_raw = row.get("properties", {})
-
-                # Properties might be a JSON string or dict
-                if isinstance(props_raw, str):
-                    try:
-                        properties = json.loads(props_raw)
-                    except json.JSONDecodeError:
-                        continue
-                elif isinstance(props_raw, dict):
-                    properties = props_raw
-                else:
-                    continue
-
-                if isinstance(properties, dict):
-                    for prop_name, prop_value in properties.items():
-                        if prop_name not in property_stats:
-                            property_stats[prop_name] = {"count": 0, "types": set()}
-                        property_stats[prop_name]["count"] += 1
-                        property_stats[prop_name]["types"].add(type(prop_value).__name__)
-
-            # Convert to PostHogMetricStat objects
-            total_properties = len(property_stats)
-
-            for prop_name, stats in sorted(property_stats.items(), key=lambda x: x[1]["count"], reverse=True):
-                try:
-                    # Determine the most common type
-                    type_list = list(stats["types"])
-                    primary_type = type_list[0] if type_list else "unknown"
-                    if len(type_list) > 1:
-                        primary_type = f"mixed ({', '.join(type_list[:3])})"
-
-                    metric = PostHogMetricStat(
-                        data_type="event_properties",
-                        date=datetime.now(UTC),
-                        event_property_name=prop_name,
-                        event_property_type=primary_type,
-                        event_property_usage_count=stats["count"],
-                        event_properties_total=total_properties,
-                        properties={
-                            "property_name": prop_name,
-                            "value_types": type_list,
-                        },
-                    )
-                    metrics_list.append(metric)
-                except Exception as e:
-                    logger.warning(f"Failed to parse event property data: {e}")
-                    continue
-
-            logger.info(f"Fetched {len(metrics_list)} PostHog event properties from {len(results)} sampled events")
-            return metrics_list
-
-        except Exception as e:
-            logger.error(f"Error fetching PostHog event properties: {e}")
-            return []
+        logger.info(
+            "Skipping PostHog event property aggregation; raw-detail-only mode is enabled"
+        )
+        return []
 
     def fetch_person_properties(
         self,
@@ -574,91 +493,10 @@ class PostHogIngestor:
         Returns:
             List of PostHogMetricStat objects with person property metadata
         """
-        logger.info("Fetching PostHog person properties")
-
-        metrics_list = []
-
-        try:
-            # Query persons and extract their properties
-            # Using the persons table with properties
-            # Note: persons table may be empty or limited in some projects
-            query = f"""
-                SELECT
-                    id,
-                    properties
-                FROM persons
-                LIMIT {sample_size}
-            """
-
-            results = self._execute_hogql_query(
-                query=query,
-                name="fetch_person_properties_sample",
-            )
-
-            if not results:
-                logger.warning("No persons found for property extraction")
-                return []
-
-            # Extract all unique property names and types
-            import json
-
-            property_stats = {}  # {property_name: {"count": int, "types": set}}
-
-            for row in results:
-                props_raw = row.get("properties", {})
-
-                # Properties might be a JSON string or dict
-                if isinstance(props_raw, str):
-                    try:
-                        properties = json.loads(props_raw)
-                    except json.JSONDecodeError:
-                        continue
-                elif isinstance(props_raw, dict):
-                    properties = props_raw
-                else:
-                    continue
-
-                if isinstance(properties, dict):
-                    for prop_name, prop_value in properties.items():
-                        if prop_name not in property_stats:
-                            property_stats[prop_name] = {"count": 0, "types": set()}
-                        property_stats[prop_name]["count"] += 1
-                        property_stats[prop_name]["types"].add(type(prop_value).__name__)
-
-            # Convert to PostHogMetricStat objects
-            total_properties = len(property_stats)
-
-            for prop_name, stats in sorted(property_stats.items(), key=lambda x: x[1]["count"], reverse=True):
-                try:
-                    # Determine the most common type
-                    type_list = list(stats["types"])
-                    primary_type = type_list[0] if type_list else "unknown"
-                    if len(type_list) > 1:
-                        primary_type = f"mixed ({', '.join(type_list[:3])})"
-
-                    metric = PostHogMetricStat(
-                        data_type="person_properties",
-                        date=datetime.now(UTC),
-                        person_property_name=prop_name,
-                        person_property_type=primary_type,
-                        person_property_usage_count=stats["count"],
-                        person_properties_total=total_properties,
-                        properties={
-                            "property_name": prop_name,
-                            "value_types": type_list,
-                        },
-                    )
-                    metrics_list.append(metric)
-                except Exception as e:
-                    logger.warning(f"Failed to parse person property data: {e}")
-                    continue
-
-            logger.info(f"Fetched {len(metrics_list)} PostHog person properties from {len(results)} sampled persons")
-            return metrics_list
-
-        except Exception as e:
-            logger.error(f"Error fetching PostHog person properties: {e}")
-            return []
+        logger.info(
+            "Skipping PostHog person property aggregation; raw-detail-only mode is enabled"
+        )
+        return []
 
     def close(self) -> None:
         """Close HTTP client."""
