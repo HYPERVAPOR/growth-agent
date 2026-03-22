@@ -3,11 +3,13 @@ import os
 import random
 import sys
 import argparse
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 import requests
 import yaml
+from dotenv import load_dotenv
 
 from .core.ai_handler import AIHandler
 from .core.db_manager import DBManager
@@ -22,10 +24,19 @@ class Placeholder:
 
 
 def _load_settings() -> Dict[str, Any]:
+    # Load secrets from growth-agent/.env (gitignored).
+    # This avoids hardcoding API keys in settings.yaml.
+    env_path = Path(__file__).resolve().parents[3] / ".env"
+    load_dotenv(dotenv_path=str(env_path), override=False)
+
     base_dir = os.path.dirname(__file__)
     config_path = os.path.join(base_dir, "config", "settings.yaml")
-    with open(config_path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        # Allow deleting settings.yaml when everything is provided via env vars.
+        return {}
 
 
 def _init_ai() -> Any:
@@ -33,9 +44,12 @@ def _init_ai() -> Any:
     try:
         cfg = _load_settings()
         ai_cfg = cfg.get("openrouter", {})
-        api_key = ai_cfg.get("api_key")
-        model = ai_cfg.get("model")
-        api_url = ai_cfg.get("api_url", "https://openrouter.ai/api/v1/chat/completions")
+        # Prefer env vars so API keys are not stored in repo config files.
+        api_key = os.getenv("OPENROUTER_API_KEY") or ai_cfg.get("api_key")
+        model = os.getenv("OPENROUTER_MODEL") or ai_cfg.get("model")
+        api_url = os.getenv(
+            "OPENROUTER_API_URL"
+        ) or ai_cfg.get("api_url", "https://openrouter.ai/api/v1/chat/completions")
 
         if not (api_key and model):
             print("⚠️ OpenRouter 配置不完整，使用占位 AI。")

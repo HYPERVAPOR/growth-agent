@@ -202,14 +202,31 @@ def load_rapidapi_config(settings: Dict[str, Any]) -> Dict[str, Any]:
     Settings precedence: ENV > settings.yaml
     """
     rapid_cfg = (settings or {}).get("rapidapi", {}) if isinstance(settings, dict) else {}
+
+    # Prefer dedicated env vars for reddit patrol so it won't interfere with other RapidAPI usage.
+    dedicated_key = os.getenv("REDDIT_PATROL_RAPIDAPI_KEY") or ""
+    key_fallback = os.getenv("RAPIDAPI_KEY") or os.getenv("X_RAPIDAPI_KEY") or ""
+
+    enabled_raw = os.getenv(
+        "REDDIT_PATROL_RAPIDAPI_ENABLED", os.getenv("RAPIDAPI_ENABLED", str(rapid_cfg.get("enabled", "true")))
+    )
+    enabled = str(enabled_raw).lower() in {"1", "true", "yes", "y", "on"}
+
+    request_url = os.getenv(
+        "REDDIT_PATROL_RAPIDAPI_REQUEST_URL", os.getenv("RAPIDAPI_REQUEST_URL", rapid_cfg.get("request_url", ""))
+    )
+    api_host = os.getenv(
+        "REDDIT_PATROL_RAPIDAPI_HOST", os.getenv("RAPIDAPI_HOST", rapid_cfg.get("api_host", "")) or ""
+    )
+    timeout_s_raw = os.getenv(
+        "REDDIT_PATROL_RAPIDAPI_TIMEOUT_S", os.getenv("RAPIDAPI_TIMEOUT_S", str(rapid_cfg.get("timeout_s", 30)))
+    )
+
     return {
-        "enabled": bool(
-            os.getenv("RAPIDAPI_ENABLED", str(rapid_cfg.get("enabled", "true"))).lower()
-            in {"1", "true", "yes", "y", "on"}
-        ),
-        "request_url": os.getenv("RAPIDAPI_REQUEST_URL", rapid_cfg.get("request_url", "")),
-        "api_key": os.getenv("RAPIDAPI_KEY", rapid_cfg.get("api_key", "")),
-        "api_host": os.getenv("RAPIDAPI_HOST", rapid_cfg.get("api_host", "")) or None,
-        "timeout_s": int(os.getenv("RAPIDAPI_TIMEOUT_S", str(rapid_cfg.get("timeout_s", 30)))),
+        "enabled": enabled,
+        "request_url": request_url,
+        "api_key": dedicated_key or key_fallback or rapid_cfg.get("api_key", ""),
+        "api_host": api_host or None,
+        "timeout_s": int(timeout_s_raw),
     }
 
